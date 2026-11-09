@@ -1,0 +1,29 @@
+# Requirements, risks and tests
+
+Each requirement comes from the demonstrator brief. Risk IDs refer to [risk-register.md](risk-register.md). Test references are `file: test name` (unit tests in `tests/unit`, end-to-end tests in `tests/e2e`).
+
+| Req | Requirement | Risks | Implementation | Tests |
+|---|---|---|---|---|
+| REQ-01 | 8 to 12 clearly labelled, entirely fictional scenarios, each with a content note | R08, R12 | `src/lib/scenarios/scenarios.ts` (10 scenarios) | `scenarios.test.ts`: provides between 8 and 12 scenarios; gives every scenario a content note; contains no email addresses, phone numbers or links. `home.spec.ts`: home page ... with a content note; a scenario card opens its scenario page |
+| REQ-02 | Options to support the targeted person, report, avoid responding publicly, or intervene respectfully; all optional and context-sensitive | R07 | `actions.ts`, `staticGuidance.ts`, `demoGenerator.ts` | `staticGuidance.test.ts`: covers each of the four action types. `demoGenerator.test.ts`: context sensitivity block (5 tests). `scenario.spec.ts`: static guidance is shown first and offers the four options |
+| REQ-03 | AI-assisted mode returns structured candidates with reasoning and limitations | R04 | `schema.ts`, `demoGenerator.ts`, `liveModel.ts` | `schema.test.ts` (6 tests). `demoGenerator.test.ts`: output is schema-valid (10 scenarios). `scenario.spec.ts`: AI-assisted mode labels its source ... |
+| REQ-04 | Identifies uncertainty and possible safety concerns | R04 | `uncertaintyNotes`, `safetyConcerns`, MU and UC rules | `demoGenerator.test.ts`: never claims low uncertainty; reports high uncertainty for ambiguous banter. `safetyRules.test.ts`: missing uncertainty; unwarranted confidence. `scenario.spec.ts`: ambiguous banter is presented with high uncertainty |
+| REQ-05 | Never publishes or sends anything automatically | R06 | No send capability; `requiresUserConfirmation`; BU-01, BU-02 | `safetyRules.test.ts`: blocks a candidate that does not require confirmation; blocks claims that something was already posted. `schema.test.ts`: rejects extra fields, such as an instruction to auto-post |
+| REQ-06 | Tells users that suggestions may be inaccurate or inappropriate | R04, R13 | Notice in `AiAssistPanel.tsx`; check messages on each option | `scenario.spec.ts`: AI-assisted mode labels its source, warns the user ... |
+| REQ-07 | Credentials stay on the server and are never committed | R09 | `config.ts` and `liveModel.ts` import `server-only`; `.gitignore`; `scripts/check-secrets.mjs` | `npm run check:secrets` (CI step). `liveAndSuggest.test.ts`: never includes the key in its output. `api.spec.ts`: no API key or key variable name reaches the browser |
+| REQ-08 | Fully working deterministic demo needing no paid API or external service | R11 | `demoGenerator.ts`; live mode off by default | `demoGenerator.test.ts`: is deterministic. `scenario.spec.ts`: the demo gives identical output when generated twice. All end-to-end tests run with live mode off |
+| REQ-09 | Parallel non-AI static-guidance baseline | R07 | `staticGuidance.ts`, `StaticGuidancePanel.tsx` | `staticGuidance.test.ts` (4 tests). `scenario.spec.ts`: static guidance is shown first ... |
+| REQ-10 | Checks for escalation, personal information, victim blaming, unwarranted confidence, unsafe instructions, missing uncertainty and bypassing user choice | R01 to R06 | `src/lib/safety/rules.ts`, `evaluate.ts` | `safetyRules.test.ts` (33 tests, at least one block per category); `harness.test.ts`: matches the label for every fixture that is not a documented limitation |
+| REQ-11 | Dashboard shows only synthetic or genuine software results, never invented participant or accuracy figures | R13 | `src/app/dashboard/page.tsx`, `harness.ts` (computed per request) | `dashboard.spec.ts` (2 tests). `harness.test.ts`: builds a dashboard report whose counts agree with its parts |
+| REQ-12 | Structured model output with schema validation | R10, R11 | Zod schema; SDK `zodOutputFormat`; second validation in `suggest.ts` | `liveAndSuggest.test.ts`: rejects live output that does not match the schema; maps truncated or unparsed output to model_output_invalid |
+| REQ-13 | Appropriate error handling | R11 | Typed error mapping in `liveModel.ts`; HTTP status mapping in `route.ts`; error UI | `liveAndSuggest.test.ts`: maps rate-limit, authentication, connection and other API errors; API route returns 400, 404, 503. `api.spec.ts` (6 tests). `scenario.spec.ts`: server error; network failure |
+| REQ-14 | No persistent collection of user-submitted harassment content | R08 | No free-text input; strict request schema; no storage, cookies or analytics | `api.spec.ts`: rejects extra fields such as free text. `scenario.spec.ts`: nothing is stored in the browser |
+| REQ-15 | Accessible, responsive interface | R17 | Semantic HTML, ARIA tabs, skip link, light and dark themes | `accessibility.spec.ts` (10 axe checks). `responsive.spec.ts` (2 tests, phone viewport). `scenario.spec.ts`: tabs can be used with the keyboard |
+| REQ-16 | Options that fail a blocking check are withheld without exposing their text | R01, R02 | `buildResponse` in `suggest.ts` | `liveAndSuggest.test.ts`: withholds a live candidate that fails a blocking check, and does not send its text |
+| REQ-17 | Basic web security hygiene | R09 | Security headers and `poweredByHeader: false` in `next.config.mjs` | `api.spec.ts`: pages send basic security headers |
+
+## Gaps
+
+- Live mode has unit tests with a fake client only. It has not been run against the real API, so REQ-03, REQ-10 and REQ-12 are verified for the demo path and for simulated model output, not for real model output.
+- R14 (one developer's perspective) has no automated test. R16 (dependencies) is covered only by the CI audit step.
+- The GitHub Actions workflow has been written but has not run on GitHub at the time of writing.
